@@ -1,542 +1,375 @@
-<!DOCTYPE html>
+html_content = """<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>めしガチャ 🍱 | 周辺グルメ検索</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Inter"', '"M PLUS Rounded 1c"', 'sans-serif'],
-                    },
-                    colors: {
-                        ios: {
-                            blue: '#007AFF',
-                            gray: '#F2F2F7',
-                            card: '#FFFFFF',
-                            text: '#1C1C1E',
-                            sub: '#8E8E93',
-                            orange: '#FF9500'
-                        }
-                    },
-                    boxShadow: {
-                        'ios': '0 4px 24px rgba(0, 0, 0, 0.04)',
-                        'ios-lg': '0 8px 32px rgba(0, 0, 0, 0.08)',
-                    }
-                }
-            }
-        }
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>現在地から探す！飲食店おみくじガチャ</title>
     <style>
+        :root {
+            --primary: #ff6b6b;
+            --primary-dark: #ee5253;
+            --secondary: #feca57;
+            --accent: #48dbfb;
+            --dark: #222f3e;
+            --light: #f7f1e3;
+            --card-bg: #ffffff;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
         body {
-            background-color: #F2F2F7; /* iOS System Gray 6 */
-            color: #1C1C1E;
-            -webkit-tap-highlight-color: transparent;
+            background-color: var(--light);
+            color: var(--dark);
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 2rem;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+        }
+        p.subtitle {
+            color: #576574;
+            font-size: 0.95rem;
         }
         
-        /* カスタムスクロールバー非表示 */
-        ::-webkit-scrollbar { display: none; }
+        /* 設定エリア */
+        .settings-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--primary);
+        }
+        .setting-group {
+            margin-bottom: 15px;
+        }
+        .setting-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #dfe4ea;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #fff;
+        }
+
+        /* ボタン類 */
+        .action-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        button {
+            border: none;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button:hover { opacity: 0.9; transform: translateY(-2px); }
+        button:active { transform: translateY(1px); box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
         
-        /* ガチャアニメーション */
-        .shake-animation {
-            animation: shake 0.4s infinite ease-in-out;
+        .btn-gps {
+            background-color: var(--primary);
+            color: white;
         }
-        @keyframes shake {
-            0%, 100% { transform: rotate(0deg) scale(1.1); }
-            25% { transform: rotate(-15deg) scale(1.1); }
-            75% { transform: rotate(15deg) scale(1.1); }
-        }
-
-        .pulse-paper {
-            animation: pulse-glow 1.5s infinite;
-        }
-        @keyframes pulse-glow {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 149, 0, 0.4); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(255, 149, 0, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 149, 0, 0); }
+        .btn-demo {
+            background-color: #2ed573;
+            color: white;
         }
 
-        .pop-in {
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        @keyframes popIn {
-            0% { opacity: 0; transform: scale(0.8) translateY(20px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
+        /* ステータスメッセージ */
+        #status-message {
+            margin-top: 15px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            text-align: center;
+            color: #576574;
         }
 
-        /* セグメントコントロール風のUI */
-        .segment-btn.active {
-            background-color: #FFFFFF;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 3px 1px rgba(0,0,0,0.04);
-            color: #1C1C1E;
-            font-weight: 700;
+        /* 結果カード */
+        .result-card {
+            background: #fdfbf7;
+            border: 2px dashed #dfe4ea;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
         }
-        .segment-btn {
-            color: #8E8E93;
-            font-weight: 600;
+        .result-card.active {
+            display: block;
         }
+
+        /* おみくじアニメーション */
+        .shaking-box {
+            text-align: center;
+            font-size: 4rem;
+            animation: shake 0.5s infinite;
+            margin-top: 10px;
+        }
+        .omikuji-paper {
+            background: #fff;
+            border: 3px solid var(--primary);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            animation: pulse 1.5s infinite;
+            transition: transform 0.2s;
+            margin: 10px auto;
+            max-width: 280px;
+        }
+        .omikuji-paper:hover { transform: scale(1.05); }
+        .omikuji-icon { font-size: 3.5rem; margin-bottom: 10px; }
+        .reveal-anim { animation: fadeIn 0.6s ease-out forwards; text-align: center;}
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0) rotate(0deg); } 25% { transform: translateX(-5px) rotate(-10deg); } 75% { transform: translateX(5px) rotate(10deg); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.5); } 70% { box-shadow: 0 0 0 15px rgba(255, 107, 107, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); } }
+
+        /* 店舗情報 */
+        .store-name { font-size: 1.4rem; font-weight: bold; color: var(--dark); margin-bottom: 10px; }
+        .store-desc { font-size: 1rem; color: #576574; margin-bottom: 15px; }
+        .store-hours { display: inline-block; background: #fffa65; padding: 4px 10px; border-radius: 4px; font-weight: bold; margin-bottom: 15px; font-size: 0.9rem;}
+        .map-link { display: inline-block; background: #00d2d3; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; }
+        .map-link:hover { background: #01a3a4; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center pb-20">
+<body>
+    <div class="container">
+        <header>
+            <h1>🍱 どこでも飲食店ガチャ</h1>
+            <p class="subtitle">現在地や指定エリアから、今日のご飯をランダム決定！</p>
+        </header>
 
-    <!-- iOS風ヘッダー (すりガラス効果) -->
-    <header class="w-full sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/80 px-4 py-3">
-        <div class="max-w-xl mx-auto flex items-center justify-between">
-            <h1 class="text-xl font-bold tracking-tight text-ios-text flex items-center gap-2" onclick="showScreen('setup')">
-                <span class="text-2xl">🍱</span> めしガチャ
-            </h1>
-            <button onclick="showScreen('setup')" id="btn-back" class="hidden text-ios-blue font-semibold text-[15px] hover:opacity-70 transition">
-                条件変更
-            </button>
-        </div>
-    </header>
-
-    <main class="w-full max-w-xl px-4 mt-6">
-
-        <!-- ==========================================
-             画面1: 条件設定画面
-             ========================================== -->
-        <section id="screen-setup" class="space-y-6">
-            
-            <!-- 位置情報ソースの選択 (セグメントコントロール風) -->
-            <div class="bg-gray-200/70 p-1 rounded-xl flex items-center relative">
-                <button onclick="setLocationMode('gps')" id="tab-gps" class="segment-btn active flex-1 py-1.5 text-sm rounded-lg transition-all duration-200 z-10 relative flex items-center justify-center gap-1">
-                    <span>📍</span> 現在地(GPS)
-                </button>
-                <button onclick="setLocationMode('demo')" id="tab-demo" class="segment-btn flex-1 py-1.5 text-sm rounded-lg transition-all duration-200 z-10 relative flex items-center justify-center gap-1">
-                    <span>🗺️</span> エリア指定
-                </button>
-            </div>
-
-            <!-- デモエリア選択リスト (エリア指定時のみ表示) -->
-            <div id="demo-area-selector" class="hidden bg-ios-card rounded-2xl p-4 shadow-ios">
-                <label class="text-[13px] font-bold text-ios-sub uppercase tracking-wider mb-3 block">デモエリアを選択</label>
-                <select id="select-demo-city" onchange="updateDemoCity()" class="w-full bg-ios-gray rounded-xl p-3 text-[15px] font-semibold text-ios-text appearance-none outline-none focus:ring-2 focus:ring-ios-blue">
-                    <option value="hiroshima">📍 広島県 広島駅前周辺</option>
-                    <option value="matsuyama">📍 愛媛県 松山大街道周辺</option>
-                    <option value="takamatsu">📍 香川県 高松瓦町周辺</option>
-                    <option value="tokyo">📍 東京都 東京駅八重洲口周辺</option>
+        <div class="settings-card">
+            <!-- 検索条件 -->
+            <div class="setting-group">
+                <label>🚶‍♂️ 移動手段は？</label>
+                <select id="transport">
+                    <option value="walk">徒歩 (のんびり)</option>
+                    <option value="bicycle">自転車 (スイスイ)</option>
+                    <option value="car">車 (ドライブ)</option>
                 </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-ios-sub">
-                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                </div>
+            </div>
+            <div class="setting-group">
+                <label>⏱️ かけられる時間は？</label>
+                <select id="minutes">
+                    <option value="5">5分以内 (超近場)</option>
+                    <option value="10" selected>10分以内 (ちょうどいい)</option>
+                    <option value="15">15分以内 (少し遠出)</option>
+                    <option value="30">30分以内 (がっつり移動)</option>
+                </select>
             </div>
 
-            <!-- 移動手段 ＆ 時間設定カード -->
-            <div class="bg-ios-card rounded-2xl p-5 shadow-ios">
+            <!-- アクションボタン -->
+            <div class="action-btns">
+                <button class="btn-gps" onclick="searchCurrentLocation()">📍 現在地周辺から探す (GPS)</button>
                 
-                <!-- 移動手段 -->
-                <div class="mb-6">
-                    <label class="text-[13px] font-bold text-ios-sub uppercase tracking-wider mb-3 block">移動手段</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button onclick="selectTransport('walk')" id="btn-transport-walk" class="transport-btn bg-ios-gray border-2 border-transparent text-ios-text rounded-2xl py-3 flex flex-col items-center gap-1 transition active:scale-95">
-                            <span class="text-2xl">🚶‍♂️</span>
-                            <span class="text-[13px] font-bold">徒歩</span>
-                        </button>
-                        <button onclick="selectTransport('bicycle')" id="btn-transport-bicycle" class="transport-btn bg-ios-gray border-2 border-transparent text-ios-text rounded-2xl py-3 flex flex-col items-center gap-1 transition active:scale-95">
-                            <span class="text-2xl">🚲</span>
-                            <span class="text-[13px] font-bold">自転車</span>
-                        </button>
-                        <button onclick="selectTransport('car')" id="btn-transport-car" class="transport-btn bg-ios-gray border-2 border-transparent text-ios-text rounded-2xl py-3 flex flex-col items-center gap-1 transition active:scale-95">
-                            <span class="text-2xl">🚗</span>
-                            <span class="text-[13px] font-bold">車</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 移動時間 -->
-                <div>
-                    <label class="text-[13px] font-bold text-ios-sub uppercase tracking-wider mb-3 block">移動時間 (分)</label>
-                    <div class="flex overflow-x-auto gap-2 pb-2 snap-x">
-                        <button onclick="selectTime(5)" id="btn-time-5" class="time-btn shrink-0 snap-center bg-ios-gray text-ios-text font-bold text-[15px] py-2 px-6 rounded-full transition">5</button>
-                        <button onclick="selectTime(10)" id="btn-time-10" class="time-btn shrink-0 snap-center bg-ios-gray text-ios-text font-bold text-[15px] py-2 px-6 rounded-full transition">10</button>
-                        <button onclick="selectTime(15)" id="btn-time-15" class="time-btn shrink-0 snap-center bg-ios-gray text-ios-text font-bold text-[15px] py-2 px-6 rounded-full transition">15</button>
-                        <button onclick="selectTime(20)" id="btn-time-20" class="time-btn shrink-0 snap-center bg-ios-gray text-ios-text font-bold text-[15px] py-2 px-6 rounded-full transition">20</button>
-                        <button onclick="selectTime(30)" id="btn-time-30" class="time-btn shrink-0 snap-center bg-ios-gray text-ios-text font-bold text-[15px] py-2 px-6 rounded-full transition">30</button>
-                    </div>
+                <div style="display:flex; gap:10px;">
+                    <select id="demo-area" style="flex:1;">
+                        <option value="hiroshima">🏙️ 広島駅周辺 (デモ)</option>
+                        <option value="matsuyama">🏙️ 松山 大街道周辺 (デモ)</option>
+                        <option value="tokyo">🏙️ 東京駅周辺 (デモ)</option>
+                    </select>
+                    <button class="btn-demo" style="flex:1;" onclick="searchDemoLocation()">デモを回す</button>
                 </div>
             </div>
-
-            <!-- サマリー表示 -->
-            <div class="text-center px-4 py-2">
-                <p class="text-[15px] text-ios-text font-semibold flex items-center justify-center gap-2">
-                    <span id="summary-icon" class="text-xl">🚶‍♂️</span>
-                    <span id="summary-text">徒歩 10分</span> ＝
-                    <span id="summary-radius" class="text-ios-blue font-bold">半径 800m 圏内</span>
-                </p>
-                <p class="text-xs text-ios-sub mt-1">※実際の道路状況により到着時間は前後します</p>
-            </div>
-
-            <!-- 検索アクションボタン -->
-            <button onclick="startSearch()" id="btn-search" class="w-full bg-ios-blue hover:bg-blue-600 text-white font-bold text-[17px] py-4 rounded-2xl shadow-ios-lg transition transform active:scale-95 flex items-center justify-center gap-2">
-                <span>📍 飲食店を検索する</span>
-            </button>
-        </section>
-
-
-        <!-- ==========================================
-             画面2: 検索結果 ＆ ガチャ
-             ========================================== -->
-        <section id="screen-results" class="hidden space-y-5">
             
-            <!-- ガチャ起動カード -->
-            <div class="bg-ios-card rounded-2xl p-5 shadow-ios text-center relative overflow-hidden">
-                <!-- 装飾 -->
-                <div class="absolute -top-10 -right-10 w-32 h-32 bg-orange-100 rounded-full blur-2xl opacity-60"></div>
-                <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-yellow-100 rounded-full blur-2xl opacity-60"></div>
-                
-                <div class="relative z-10">
-                    <div class="flex items-center justify-between text-xs font-bold text-ios-sub mb-3">
-                        <span id="result-location-text">📍 現在地から</span>
-                        <span id="result-count" class="bg-blue-50 text-ios-blue px-2 py-0.5 rounded text-[11px]">0件</span>
-                    </div>
-                    
-                    <h2 class="text-[17px] font-black text-ios-text mb-4 tracking-tight">今日のご飯、運命に任せる？</h2>
-                    
-                    <button onclick="triggerGacha()" class="w-full bg-gradient-to-r from-orange-400 to-ios-orange hover:from-orange-500 hover:to-orange-600 text-white font-bold text-[17px] py-3.5 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
-                        <span class="text-xl animate-bounce">🎲</span> ガチャを回して決める
-                    </button>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-between px-2 mt-2">
-                <h3 class="font-bold text-[15px] text-ios-text">リストから選ぶ</h3>
-                <span class="text-[12px] font-semibold text-ios-sub">近い順</span>
-            </div>
-
-            <!-- リストコンテナ -->
-            <div id="shop-list" class="space-y-3">
-                <!-- JSで動的に追加 -->
-            </div>
-        </section>
-
-    </main>
-
-    <!-- ==========================================
-         モーダル: おみくじガチャ演出
-         ========================================== -->
-    <div id="gacha-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-opacity">
-        
-        <!-- モーダル本体 -->
-        <div class="bg-white rounded-[2rem] w-full max-w-sm p-6 text-center shadow-2xl relative overflow-hidden">
-            
-            <!-- 1. 筒を振るアニメーション (2秒間) -->
-            <div id="gacha-shaking" class="py-10">
-                <div class="text-[80px] shaking-box shake-animation inline-block drop-shadow-md">🎋</div>
-                <h3 class="text-[19px] font-black text-ios-text mt-6">おみくじを引いています…</h3>
-                <p class="text-[13px] font-semibold text-ios-orange mt-2">運命のお店は果たして…！</p>
-            </div>
-
-            <!-- 2. 紙をタップする待機画面 -->
-            <div id="gacha-paper" class="hidden py-8">
-                <div onclick="revealResult()" class="omikuji-paper pulse-paper bg-[#FFF8E7] border-4 border-ios-orange rounded-3xl p-6 cursor-pointer hover:scale-105 transition transform shadow-lg mx-auto w-3/4">
-                    <div class="text-[60px] mb-2 drop-shadow-md">📜</div>
-                    <span class="bg-ios-orange text-white text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Tap to Open</span>
-                    <h4 class="text-[17px] font-black text-ios-text mt-4">おみくじが出ました！</h4>
-                </div>
-            </div>
-
-            <!-- 3. 結果発表画面 -->
-            <div id="gacha-result" class="hidden pop-in text-left">
-                <div class="text-center mb-4 relative">
-                    <div class="text-5xl mb-2 absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 opacity-20">🎊</div>
-                    <span class="relative z-10 inline-block bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase mb-2">Today's Pick</span>
-                    <h4 class="text-[22px] font-black text-ios-text leading-tight" id="res-name">店舗名</h4>
-                    <span class="inline-block text-ios-sub text-[12px] font-bold mt-1" id="res-genre">ジャンル</span>
-                </div>
-
-                <div class="bg-gray-50 rounded-2xl p-4 mb-5 border border-gray-100">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-ios-blue font-bold text-[13px] bg-blue-50 px-2 py-0.5 rounded-md" id="res-dist">📍 徒歩0分</span>
-                        <span class="text-ios-orange font-bold text-[13px]" id="res-rating">⭐ 4.0</span>
-                    </div>
-                    <p class="text-[13px] text-ios-text font-medium leading-relaxed" id="res-desc">
-                        説明文が入ります。
-                    </p>
-                </div>
-
-                <div class="space-y-3">
-                    <a id="res-map" href="#" target="_blank" class="w-full bg-ios-blue hover:bg-blue-600 text-white font-bold text-[15px] py-3.5 rounded-xl shadow-md transition flex items-center justify-center gap-2">
-                        🗺️ Googleマップで開く
-                    </a>
-                    <button onclick="closeGacha()" class="w-full bg-gray-100 hover:bg-gray-200 text-ios-text font-bold text-[15px] py-3.5 rounded-xl transition">
-                        閉じる
-                    </button>
-                </div>
-            </div>
+            <!-- メッセージ表示エリア -->
+            <div id="status-message"></div>
         </div>
+
+        <!-- 結果表示エリア -->
+        <div id="result-area" class="result-card"></div>
     </div>
 
-
-    <!-- JavaScript ロジック -->
     <script>
-        // === 状態管理 ===
-        let locationMode = 'gps'; // 'gps' or 'demo'
-        let currentTransport = 'walk'; 
-        let currentTime = 10;
-        let demoCityKey = 'hiroshima';
-        
-        let searchLocation = { lat: null, lng: null, name: "" };
-        let results = [];
-        let selectedShop = null;
-
-        const demoCities = {
-            hiroshima: { lat: 34.3977, lng: 132.4753, name: "広島駅前周辺" },
-            matsuyama: { lat: 33.8392, lng: 132.7656, name: "松山大街道周辺" },
-            takamatsu: { lat: 34.3424, lng: 134.0519, name: "高松瓦町周辺" },
-            tokyo:     { lat: 35.6812, lng: 139.7671, name: "東京駅周辺" }
+        // サンプル店舗データ（API接続前のお試し用）
+        const db = {
+            hiroshima: [
+                { name: "お好み焼き みっちゃん総本店", desc: "広島風お好み焼きの超定番！行列必至の名店です。", hours: "11:00〜21:00", placeId: "" },
+                { name: "陽気 広島駅前店", desc: "広島ラーメン（醤油豚骨）の老舗。コクがあるのにあっさり！", hours: "11:00〜22:00", placeId: "" },
+                { name: "牡蠣亭", desc: "広島名物の新鮮な牡蠣料理を一年中楽しめるお店。", hours: "11:00〜15:00 / 17:00〜21:00", placeId: "" }
+            ],
+            matsuyama: [
+                { name: "郷土料理 五志喜 本店", desc: "愛媛名物「鯛めし」や「五色そうめん」が味わえる老舗。", hours: "11:00〜21:00", placeId: "" },
+                { name: "アサヒ", desc: "松山市民のソウルフード！甘めの出汁が特徴の鍋焼きうどん。", hours: "10:00〜14:00 (売切次第終了)", placeId: "" },
+                { name: "霧の森菓子工房 松山店", desc: "食後のデザートに！大人気の「霧の森大福」があるお店。", hours: "10:00〜19:00", placeId: "" }
+            ],
+            tokyo: [
+                { name: "六厘舎 東京ラーメンストリート", desc: "濃厚な魚介豚骨つけ麺！東京駅の地下で大行列。", hours: "7:30〜22:30", placeId: "" },
+                { name: "近畿大学水産研究所 銀座店", desc: "近大マグロなど、こだわりの養殖魚が食べられる話題のお店。", hours: "11:30〜14:00 / 17:00〜22:00", placeId: "" },
+                { name: "矢場とん 東京駅グランルーフ店", desc: "名古屋名物のみそかつが東京駅でも味わえる！", hours: "11:00〜23:00", placeId: "" }
+            ],
+            gps_dummy: [
+                { name: "📍 あなたの現在地付近の美味しいお店 A", desc: "【テスト用】APIを連携すると、ここに本物のお店が出ます！", hours: "11:00〜22:00", placeId: "" },
+                { name: "📍 あなたの現在地付近の美味しいお店 B", desc: "【テスト用】指定した移動範囲内に実在する店舗が表示されます。", hours: "10:00〜20:00", placeId: "" }
+            ]
         };
 
-        const shopTemplates = [
-            { genre: "定食・食堂", icon: "🍱", names: ["おふくろ亭", "満腹食堂", "街角ダイニング", "めしや 太陽"], desc: "ボリューム満点でどこか懐かしい味の定食屋。" },
-            { genre: "ラーメン", icon: "🍜", names: ["麺屋 龍神", "中華そば 萬福", "豚骨 一番星", "らーめん 飛燕"], desc: "濃厚スープとこだわりの自家製麺が絡み合う一杯。" },
-            { genre: "カフェランチ", icon: "☕", names: ["Cafe & Dining", "木漏れ日カフェ", "オーガニックキッチン", "Cafe ROOTS"], desc: "おしゃれな空間でヘルシーなランチプレートを楽しめる。" },
-            { genre: "イタリアン", icon: "🍝", names: ["トラットリア ベル", "ピッツェリア 太陽", "パスタバル VINO", "イタリアン食堂"], desc: "もちもちの生パスタと本格ピザが自慢のお店。" },
-            { genre: "うどん・そば", icon: "🥢", names: ["手打ち庵", "自家製麺 さぬき家", "そば処 砂丘", "めん処 かえで"], desc: "出汁の香りが食欲をそそる、サクッと食べられる麺処。" },
-            { genre: "焼肉・肉料理", icon: "🥩", names: ["焼肉 炭火の極み", "ステーキハウス 肉王", "ホルモン本舗", "肉バル MEET"], desc: "上質なお肉をリーズナブルに味わえるランチセットが人気。" }
-        ];
+        // 選ばれたデータを保持する変数
+        let currentSelectedStore = null;
 
-        // === 初期化 ===
-        window.onload = () => {
-            selectTransport('walk');
-            selectTime(10);
-        };
+        // 移動手段と時間から検索半径（メートル）を計算
+        function calculateRadius(transport, minutes) {
+            let speed = 80; // 徒歩: 分速80m
+            if (transport === 'bicycle') speed = 250; // 自転車: 分速250m
+            if (transport === 'car') speed = 500; // 車: 分速500m
+            return speed * minutes;
+        }
 
-        // === UI制御関数 ===
-        function setLocationMode(mode) {
-            locationMode = mode;
-            
-            document.getElementById('tab-gps').classList.remove('active');
-            document.getElementById('tab-demo').classList.remove('active');
-            document.getElementById(`tab-${mode}`).classList.add('active');
+        // ① 現在地(GPS)から探す処理
+        function searchCurrentLocation() {
+            const transport = document.getElementById('transport').value;
+            const minutes = parseInt(document.getElementById('minutes').value);
+            const radius = calculateRadius(transport, minutes);
+            const statusEl = document.getElementById('status-message');
 
-            const demoSelector = document.getElementById('demo-area-selector');
-            if(mode === 'demo') {
-                demoSelector.classList.remove('hidden');
-                demoSelector.classList.add('block');
-            } else {
-                demoSelector.classList.add('hidden');
-                demoSelector.classList.remove('block');
+            statusEl.innerHTML = "📡 スマホのGPSで現在地を取得中...";
+            document.getElementById('result-area').classList.remove('active');
+
+            // GPS機能がないブラウザの場合
+            if (!navigator.geolocation) {
+                statusEl.innerHTML = "❌ お使いのブラウザはGPSに対応していません。";
+                return;
             }
+
+            // GPSのオプション設定
+            const options = {
+                enableHighAccuracy: false, // 速度重視
+                timeout: 10000,            // 10秒でタイムアウト
+                maximumAge: 60000          // 1分以内の古いデータも許容
+            };
+
+            // GPS取得実行
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    // 成功時
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    statusEl.innerHTML = `✅ <b>現在地を取得しました！</b><br><small>検索半径: ${radius}m 圏内 (緯度:${lat.toFixed(3)}, 経度:${lng.toFixed(3)})</small><br><span style="color:#ee5253;">※現在はAPI連携前のため、サンプルのGPS結果を表示します。</span>`;
+                    
+                    // API連携前なので、ダミーのGPSリストを使ってガチャを回す
+                    executeGacha(db.gps_dummy);
+                },
+                (error) => {
+                    // 失敗時（エラー理由を細かく判定して表示）
+                    let errorMsg = "";
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg = "❌ 位置情報がブロックされています。ブラウザのURL横の「ぁあ」や「鍵マーク」から位置情報を許可し、再読み込みしてください。";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg = "❌ 電波状況などで現在地が取得できませんでした。";
+                            break;
+                        case error.TIMEOUT:
+                            errorMsg = "❌ 取得に時間がかかりすぎました（タイムアウト）。もう一度お試しください。";
+                            break;
+                        default:
+                            errorMsg = "❌ エラーが発生しました。";
+                            break;
+                    }
+                    statusEl.innerHTML = errorMsg;
+                },
+                options
+            );
         }
 
-        function updateDemoCity() {
-            demoCityKey = document.getElementById('select-demo-city').value;
-        }
-
-        function selectTransport(type) {
-            currentTransport = type;
-            const buttons = document.querySelectorAll('.transport-btn');
-            buttons.forEach(btn => {
-                btn.classList.remove('bg-ios-blue', 'text-white', 'border-ios-blue');
-                btn.classList.add('bg-ios-gray', 'border-transparent', 'text-ios-text');
-            });
-            const selected = document.getElementById(`btn-transport-${type}`);
-            selected.classList.add('bg-ios-blue', 'text-white', 'border-ios-blue');
-            selected.classList.remove('bg-ios-gray', 'border-transparent', 'text-ios-text');
-            updateSummary();
-        }
-
-        function selectTime(minutes) {
-            currentTime = minutes;
-            const buttons = document.querySelectorAll('.time-btn');
-            buttons.forEach(btn => {
-                btn.classList.remove('bg-ios-blue', 'text-white');
-                btn.classList.add('bg-ios-gray', 'text-ios-text');
-            });
-            const selected = document.getElementById(`btn-time-${minutes}`);
-            selected.classList.add('bg-ios-blue', 'text-white');
-            selected.classList.remove('bg-ios-gray', 'text-ios-text');
-            updateSummary();
-        }
-
-        function getRadius() {
-            const speeds = { walk: 80, bicycle: 250, car: 500 };
-            return speeds[currentTransport] * currentTime;
-        }
-
-        function updateSummary() {
-            const icons = { walk: '🚶‍♂️', bicycle: '🚲', car: '🚗' };
-            const names = { walk: '徒歩', bicycle: '自転車', car: '車' };
-            const radius = getRadius();
-            const radStr = radius >= 1000 ? `${(radius/1000).toFixed(1)}km` : `${radius}m`;
+        // ② デモエリアから探す処理
+        function searchDemoLocation() {
+            const areaKey = document.getElementById('demo-area').value;
+            const transport = document.getElementById('transport').value;
+            const minutes = document.getElementById('minutes').value;
+            const radius = calculateRadius(transport, minutes);
             
-            document.getElementById('summary-icon').textContent = icons[currentTransport];
-            document.getElementById('summary-text').textContent = `${names[currentTransport]} ${currentTime}分`;
-            document.getElementById('summary-radius').textContent = `半径 ${radStr} 圏内`;
-        }
-
-        function showScreen(screen) {
-            if(screen === 'setup') {
-                document.getElementById('screen-setup').classList.remove('hidden');
-                document.getElementById('screen-results').classList.add('hidden');
-                document.getElementById('btn-back').classList.add('hidden');
-            } else {
-                document.getElementById('screen-setup').classList.add('hidden');
-                document.getElementById('screen-results').classList.remove('hidden');
-                document.getElementById('btn-back').classList.remove('hidden');
-            }
-            window.scrollTo(0,0);
-        }
-
-        // === 検索ロジック ===
-        function startSearch() {
-            const btn = document.getElementById('btn-search');
-            btn.disabled = true;
-            btn.innerHTML = `<span class="animate-pulse">📍 位置情報を取得中...</span>`;
-
-            if (locationMode === 'demo') {
-                // デモモード
-                searchLocation = demoCities[demoCityKey];
-                setTimeout(() => processResults(), 500);
-            } else {
-                // GPSモード
-                if ("geolocation" in navigator) {
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            searchLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, name: "現在地" };
-                            processResults();
-                        },
-                        (err) => {
-                            alert("GPSの取得に失敗しました。デモエリア（広島駅）で検索します。");
-                            searchLocation = demoCities.hiroshima;
-                            processResults();
-                        },
-                        { timeout: 7000 }
-                    );
-                } else {
-                    alert("GPS非対応のブラウザです。デモエリアを使用します。");
-                    searchLocation = demoCities.hiroshima;
-                    processResults();
-                }
-            }
-        }
-
-        function processResults() {
-            const radius = getRadius();
-            results = generateDummyData(searchLocation.lat, searchLocation.lng, radius, currentTransport);
+            const statusEl = document.getElementById('status-message');
             
-            // ヘッダー情報更新
-            const distStr = radius >= 1000 ? `${(radius/1000).toFixed(1)}km` : `${radius}m`;
-            document.getElementById('result-location-text').textContent = `📍 ${searchLocation.name}から約${distStr}圏内`;
-            document.getElementById('result-count').textContent = `${results.length}件発見`;
+            // 選択されたエリアの名前に変換
+            let areaName = "";
+            if(areaKey === "hiroshima") areaName = "広島駅周辺";
+            if(areaKey === "matsuyama") areaName = "松山 大街道周辺";
+            if(areaKey === "tokyo") areaName = "東京駅周辺";
 
-            renderList();
-            showScreen('results');
+            statusEl.innerHTML = `✅ デモモード: <b>${areaName}</b> から ${radius}m圏内で検索しました！`;
             
-            const btn = document.getElementById('btn-search');
-            btn.disabled = false;
-            btn.innerHTML = `<span>📍 飲食店を検索する</span>`;
+            executeGacha(db[areaKey]);
         }
 
-        // 仮想の飲食店データを生成
-        function generateDummyData(lat, lng, maxDist, transport) {
-            const list = [];
-            const count = Math.floor(Math.random() * 8) + 12; // 12〜19件
-
-            for(let i=0; i<count; i++) {
-                const tmpl = shopTemplates[Math.floor(Math.random() * shopTemplates.length)];
-                const name = tmpl.names[Math.floor(Math.random() * tmpl.names.length)] + (Math.random() > 0.7 ? " 本店" : "");
-                
-                // 距離はランダム (近めが多くなるように偏らせる)
-                const dist = Math.floor(maxDist * (0.1 + (Math.random() * Math.random() * 0.9)));
-                
-                let speed = 80;
-                if(transport === 'bicycle') speed = 250;
-                if(transport === 'car') speed = 500;
-                const reqMin = Math.max(1, Math.round(dist / speed));
-
-                const rating = (3.5 + Math.random() * 1.3).toFixed(1);
-                
-                // 地図用のダミー座標
-                const dLat = lat + (Math.random()-0.5) * 0.005;
-                const dLng = lng + (Math.random()-0.5) * 0.005;
-
-                list.push({
-                    name: name, genre: tmpl.genre, icon: tmpl.icon, desc: tmpl.desc,
-                    dist: dist, min: reqMin, rating: rating, lat: dLat, lng: dLng
-                });
-            }
-            return list.sort((a,b) => a.dist - b.dist);
-        }
-
-        function renderList() {
-            const container = document.getElementById('shop-list');
-            container.innerHTML = '';
+        // ガチャ（おみくじ）の演出を実行する
+        function executeGacha(storeList) {
+            const card = document.getElementById('result-area');
+            card.className = "result-card active";
             
-            const trIcon = { walk: '🚶‍♂️', bicycle: '🚲', car: '🚗' }[currentTransport];
+            // ランダムに1店舗選ぶ
+            currentSelectedStore = storeList[Math.floor(Math.random() * storeList.length)];
 
-            results.forEach(shop => {
-                const distStr = shop.dist >= 1000 ? `${(shop.dist/1000).toFixed(1)}km` : `${shop.dist}m`;
-                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.name)}@${shop.lat},${shop.lng}`;
-                
-                const card = `
-                <div class="bg-ios-card rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col gap-2 relative overflow-hidden">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <span class="text-[10px] font-bold text-ios-sub bg-gray-100 px-2 py-0.5 rounded-full">${shop.icon} ${shop.genre}</span>
-                            <h4 class="text-[16px] font-bold text-ios-text mt-1 leading-tight">${shop.name}</h4>
-                        </div>
-                        <span class="text-[13px] font-bold text-ios-orange bg-orange-50 px-2 py-1 rounded-lg">⭐ ${shop.rating}</span>
-                    </div>
-                    <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
-                        <span class="text-[12px] font-bold text-ios-blue">${trIcon} 約${shop.min}分 <span class="text-ios-sub font-medium ml-1">(${distStr})</span></span>
-                        <a href="${mapUrl}" target="_blank" class="text-[12px] font-bold bg-ios-gray text-ios-text px-3 py-1.5 rounded-lg hover:bg-gray-200 transition">MAP</a>
-                    </div>
+            // 筒を振るアニメーション (2秒間)
+            card.innerHTML = `
+                <div class="shaking-box">🎋</div>
+                <div style="text-align:center; color:var(--primary-dark); font-weight:bold; margin-top:10px;">
+                    お店を抽選中……
                 </div>
-                `;
-                container.insertAdjacentHTML('beforeend', card);
-            });
-        }
+            `;
 
-        // === ガチャ制御 ===
-        function triggerGacha() {
-            if(results.length === 0) return;
-            selectedShop = results[Math.floor(Math.random() * results.length)];
-
-            const modal = document.getElementById('gacha-modal');
-            const stepShake = document.getElementById('gacha-shaking');
-            const stepPaper = document.getElementById('gacha-paper');
-            const stepRes = document.getElementById('gacha-result');
-
-            modal.classList.remove('hidden');
-            stepShake.classList.remove('hidden');
-            stepPaper.classList.add('hidden');
-            stepRes.classList.add('hidden');
-
-            // 要件: 2秒間筒が揺れるアニメーション
             setTimeout(() => {
-                stepShake.classList.add('hidden');
-                stepPaper.classList.remove('hidden');
+                // 2秒後におみくじの紙を表示
+                card.innerHTML = `
+                    <div class="omikuji-paper" onclick="revealResult()">
+                        <div class="omikuji-icon">📜</div>
+                        <p style="font-weight:bold; color:var(--primary-dark); font-size:1.2rem;">お店が決まりました！</p>
+                        <p style="font-size:0.9rem; color:#555; margin-top:5px;">（タップして開く）</p>
+                    </div>
+                `;
             }, 2000);
         }
 
+        // おみくじをタップして結果を表示
         function revealResult() {
-            if(!selectedShop) return;
-            
-            document.getElementById('gacha-paper').classList.add('hidden');
-            
-            const shop = selectedShop;
-            const trIcon = { walk: '🚶‍♂️', bicycle: '🚲', car: '🚗' }[currentTransport];
-            const distStr = shop.dist >= 1000 ? `${(shop.dist/1000).toFixed(1)}km` : `${shop.dist}m`;
-            
-            document.getElementById('res-name').textContent = `${shop.icon} ${shop.name}`;
-            document.getElementById('res-genre').textContent = shop.genre;
-            document.getElementById('res-dist').textContent = `${trIcon} 約${shop.min}分 (${distStr})`;
-            document.getElementById('res-rating').textContent = `⭐ ${shop.rating}`;
-            document.getElementById('res-desc').textContent = shop.desc;
-            document.getElementById('res-map').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.name)}@${shop.lat},${shop.lng}`;
+            if (!currentSelectedStore) return;
+            const item = currentSelectedStore;
+            const card = document.getElementById('result-area');
 
-            document.getElementById('gacha-result').classList.remove('hidden');
-        }
+            // Googleマップ検索用のURL生成
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name)}`;
 
-        function closeGacha() {
-            document.getElementById('gacha-modal').classList.add('hidden');
+            card.innerHTML = `
+                <div class="reveal-anim">
+                    <div style="font-size:3rem; margin-bottom:10px;">🎊</div>
+                    <div class="store-name">${item.name}</div>
+                    <div class="store-desc">${item.desc}</div>
+                    <div class="store-hours">🕒 営業時間: ${item.hours}</div><br>
+                    <a class="map-link" href="${mapUrl}" target="_blank">🗺️ Googleマップでナビ開始</a>
+                </div>
+            `;
         }
     </script>
 </body>
 </html>
+"""
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(html_content)
